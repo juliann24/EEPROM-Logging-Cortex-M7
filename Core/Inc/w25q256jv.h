@@ -103,11 +103,13 @@
  #define W25Q256JV_READ_STATUS_REG2_CMD            0x35U // Leer el registro de estado 2
  #define W25Q256JV_WRITE_STATUS_REG2_CMD           0x31U // Escribir el registro de estado 2
  #define W25Q256JV_READ_STATUS_REG3_CMD            0x15U // Leer el registro de estado 3
+ #define W25Q256JV_WRITE_STATUS_REG3_CMD           0x31U // Escribir el registro de estado 3
 
  #define W25Q256JV_READ_DATA_CMD                   0x03U
  #define W25Q256JV_FAST_READ_CMD                   0x0BU
 
  #define W25Q256JV_PAGE_PROGRAM_DUAL_INPUT_CMD	   0xA2U
+ #define W25Q256JV_FAST_READ_DUAL_OUT_CMD		   0x3BU
  #define W25Q256JV_FAST_READ_DUAL_IO_CMD		   0xBBU
  #define W25Q256JV_FAST_READ_QUAD_OUT_CMD          0x6BU // Lectura rápida con salida Quad
  #define W25Q256JV_FAST_READ_QUAD_IO_CMD           0xEBU // Lectura rápida con E/S Quad (usado en quadspi.c)
@@ -123,6 +125,8 @@
 
  #define W25Q256JV_ENABLE_RESET_CMD                0x66U // Comando de Habilitar Reset
  #define W25Q256JV_RESET_DEVICE_CMD                0x99U // Comando de Reset
+ #define W25Q256JV_ENTER_4BYTE_ADDRESS_MODE_CMD	   0xB7U // Entrar en modo 4Byte
+ #define W25Q256JV_EXIT_4BYTE_ADDRESS_MODE_CMD	   0xE9U // Salir de modo 4Byte
 
  /******************************************************************************/
  /* MASCARAS DE REGISTROS DE ESTADO                        */

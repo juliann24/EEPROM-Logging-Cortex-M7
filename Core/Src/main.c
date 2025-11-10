@@ -56,7 +56,7 @@ int main(void)
   uint8_t readsr1 = 0x00;
   uint8_t readsr2 = 0x00;
   uint8_t readsr3 = 0x00;
-  const char *test_string = "QUAD_MODE_FUNCIONAL";
+  const char *test_string = "QUAD_MODE_FUNCIONAL_2";
   uint32_t string_len = strlen(test_string);
   uint8_t read_buffer[64] = {0};
   /* USER CODE END 1 */
@@ -100,55 +100,20 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   BSP_LED_On(LED_YELLOW);
-  status = QSPI_Software_Reset(&hqspi);
-  if (status != HAL_OK) return status;
-  HAL_Delay(1);
 
-  // 2. Esperar que el chip esté listo
-  status = QSPI_Wait_For_Ready_Manual(&hqspi, 500);
-  if (status != HAL_OK) return status;
-
-  // 3. Leer JEDEC ID para verificar comunicación
-  status = QSPI_Read_JEDEC_ID(&hqspi, aJEDEC_ID);
-  if (status != HAL_OK) return status;
-  if (aJEDEC_ID[0] != W25Q256JV_JEDEC_ID) return HAL_ERROR; // ID del fabricante Winbond (0xEF)
-
-  // 4. Entrar en modo de 4 bytes (comando 0xB7)
-  status = QSPI_Enter_4Byte_Mode(&hqspi);
-  if (status != HAL_OK) return status;
-
-  status = QSPI_Wait_For_Ready_Manual(&hqspi, 500);
-  if (status != HAL_OK) return status;
-
-  // 5. Verificar que realmente entró en modo 4-byte
-  status = QSPI_Check_4Byte_Mode(&hqspi, &addr_mode);
-  if (status != HAL_OK || addr_mode == 0) return HAL_ERROR;
-
-  // 6. Habilitar modo Quad (QE bit)
-  status = QSPI_Enable_Quad_Mode(&hqspi);
-  if (status != HAL_OK) return status;
-
-  status = QSPI_Wait_For_Ready_Manual(&hqspi, 500);
-  if (status != HAL_OK) return status;
-
-  // 7. Verificar QE
-  status = QSPI_Check_QE(&hqspi, &qe);
-  if (status != HAL_OK || qe == 0) return HAL_ERROR;
-
-  status = QSPI_Clear_CMP(&hqspi);
-  if (status != HAL_OK) return status;
+  status = QSPI_Set_Status_Config(&hqspi);
+  if (status != HAL_OK) Error_Handler();
 
   status = QSPI_Read_Status_Reg1(&hqspi, &readsr1);
-  if (status != HAL_OK) return status;
+  if (status != HAL_OK) Error_Handler();
   status = QSPI_Read_Status_Reg2(&hqspi, &readsr2);
-  if (status != HAL_OK) return status;
+  if (status != HAL_OK) Error_Handler();
   status = QSPI_Read_Status_Reg3(&hqspi, &readsr3);
-  if (status != HAL_OK) return status;
+  if (status != HAL_OK) Error_Handler();
 
 
-  if (QSPI_Write_Status_Reg1(&hqspi, sr1) != HAL_OK) return HAL_ERROR;
-
-  if (QSPI_Write_Status_Reg2(&hqspi, sr2) != HAL_OK) return HAL_ERROR;
+  if (QSPI_Write_Status_Reg1(&hqspi, sr1) != HAL_OK) Error_Handler();
+  if (QSPI_Write_Status_Reg2(&hqspi, sr2) != HAL_OK) Error_Handler();
 
 
   if (QSPI_Sector_Erase(&hqspi, TEST_ADDRESS) != HAL_OK) Error_Handler();
