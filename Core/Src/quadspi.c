@@ -889,4 +889,63 @@ HAL_StatusTypeDef QSPI_Set_Status_Config(QSPI_HandleTypeDef *hqspi)
 	return status;
 }
 
+HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi)
+{
+    // Abortar modo Memory-Mapped
+    if (HAL_QSPI_Abort(hqspi) != HAL_OK)
+        return HAL_ERROR;
+
+    // Esperar que el periférico y la flash queden listos
+    if (QSPI_Wait_For_Ready_Manual(hqspi, 1000) != HAL_OK)
+        return HAL_ERROR;
+
+    return HAL_OK;
+}
+
+HAL_StatusTypeDef QSPI_ReadStatusAll(QSPI_HandleTypeDef *hqspi, QSPI_StatusRegs_t *status)
+{
+    if (!status) return HAL_ERROR;
+    memset(status, 0, sizeof(QSPI_StatusRegs_t));
+
+    uint8_t sr1 = 0, sr2 = 0, sr3 = 0;
+
+    if (QSPI_Read_Status_Reg1(hqspi, &sr1) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Read_Status_Reg2(hqspi, &sr2) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Read_Status_Reg3(hqspi, &sr3) != HAL_OK) return HAL_ERROR;
+
+    status->SR1 = sr1;
+    status->SR2 = sr2;
+    status->SR3 = sr3;
+
+    status->BUSY = sr1 & 0x01;
+    status->WEL  = (sr1 >> 1) & 0x01;
+    status->BP   = (sr1 >> 2) & 0x1F;   // BP0–BP4
+
+    status->QE   = (sr2 >> 1) & 0x01;
+    status->SRL  = (sr2 >> 7) & 0x01;
+    status->CMP  = (sr2 >> 6) & 0x01;
+    status->LB   = (sr2 >> 3) & 0x03;   // LB bits opcionales según variante
+
+    return HAL_OK;
+}
+
+HAL_StatusTypeDef QSPI_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t address, const char *pattern, uint32_t size)
+{
+    uint8_t verify_buf[512]; // buffer temporal de lectura
+    uint32_t test_size = size;
+
+    if (test_size > W25Q256JV_PAGE_SIZE)
+        test_size = W25Q256JV_PAGE_SIZE;
+
+    if (QSPI_Wait_For_Ready_Manual(hqspi, 1000) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Sector_Erase(hqspi, TEST_ADDRESS) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Write_String_Quad(hqspi, pattern, TEST_ADDRESS) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Read_Data_Quad(hqspi, verify_buf, address, test_size) != HAL_OK) return HAL_ERROR;
+
+    if (memcmp(pattern, verify_buf, test_size) != 0) return HAL_ERROR;
+
+    return HAL_OK;
+}
+
 /* USER CODE END 1 */

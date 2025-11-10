@@ -28,3 +28,6 @@
 ../Core/Src/quadspi.c:823:19:QSPI_Write_Status_Reg2	72	static
 ../Core/Src/quadspi.c:848:19:QSPI_Clear_CMP	80	static
 ../Core/Src/quadspi.c:877:19:QSPI_Set_Status_Config	24	static
+../Core/Src/quadspi.c:892:19:QSPI_DisableMemoryMapped	16	static
+../Core/Src/quadspi.c:905:19:QSPI_ReadStatusAll	24	static
+../Core/Src/quadspi.c:932:19:QSPI_SelfTest	552	static

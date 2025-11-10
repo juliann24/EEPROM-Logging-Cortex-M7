@@ -47,18 +47,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  uint8_t status = 0;
-  uint8_t addr_mode = 0;
-  uint8_t qe = 0;
-  uint8_t aJEDEC_ID[3];
-  uint8_t sr1 = 0x00;
-  uint8_t sr2 = 0x02;
-  uint8_t readsr1 = 0x00;
-  uint8_t readsr2 = 0x00;
-  uint8_t readsr3 = 0x00;
   const char *test_string = "QUAD_MODE_FUNCIONAL_2";
   uint32_t string_len = strlen(test_string);
-  uint8_t read_buffer[64] = {0};
   /* USER CODE END 1 */
 
   /* MPU Configuration--------------------------------------------------------*/
@@ -101,44 +91,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   BSP_LED_On(LED_YELLOW);
 
-  status = QSPI_Set_Status_Config(&hqspi);
-  if (status != HAL_OK) Error_Handler();
-
-  status = QSPI_Read_Status_Reg1(&hqspi, &readsr1);
-  if (status != HAL_OK) Error_Handler();
-  status = QSPI_Read_Status_Reg2(&hqspi, &readsr2);
-  if (status != HAL_OK) Error_Handler();
-  status = QSPI_Read_Status_Reg3(&hqspi, &readsr3);
-  if (status != HAL_OK) Error_Handler();
-
-
-  if (QSPI_Write_Status_Reg1(&hqspi, sr1) != HAL_OK) Error_Handler();
-  if (QSPI_Write_Status_Reg2(&hqspi, sr2) != HAL_OK) Error_Handler();
-
-
-  if (QSPI_Sector_Erase(&hqspi, TEST_ADDRESS) != HAL_OK) Error_Handler();
-  if (QSPI_Wait_For_Ready_Manual(&hqspi, 500) != HAL_OK) Error_Handler();
-
-  if (QSPI_Write_String_Quad(&hqspi, test_string, TEST_ADDRESS) != HAL_OK) Error_Handler();
-  if (QSPI_Wait_For_Ready_Manual(&hqspi, 500) != HAL_OK) Error_Handler();
-
-
-  memset(read_buffer, 0, sizeof(read_buffer));
-  if (QSPI_Read_Data_Quad(&hqspi, read_buffer, TEST_ADDRESS, string_len) != HAL_OK) Error_Handler();
-  if (QSPI_Wait_For_Ready_Manual(&hqspi, 500) != HAL_OK) Error_Handler();
-
-  //////////////////////////////////////////////////////////////////////////
-  /////////////////////////////FIN DEL TEST/////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////
-  if (memcmp(test_string, read_buffer, string_len) == 0)
-  {
-      // Éxito: Encender LED Verde
-      BSP_LED_On(LED_GREEN);
+  if(QSPI_SelfTest(&hqspi, TEST_ADDRESS, test_string, string_len) == HAL_OK){
       BSP_LED_Off(LED_RED);
+      BSP_LED_On(LED_GREEN);
   }
-  else
-  {
-      // Fallo de Lectura/Escritura: Encender LED Rojo
+  else {
       BSP_LED_On(LED_RED);
       BSP_LED_Off(LED_GREEN);
   }

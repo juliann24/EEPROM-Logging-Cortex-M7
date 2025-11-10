@@ -37,7 +37,22 @@ extern "C" {
 extern QSPI_HandleTypeDef hqspi;
 
 /* USER CODE BEGIN Private defines */
-// Se recomienda definir un punto de inicio para las pruebas, por ejemplo, el sector 1
+
+typedef struct {
+    uint8_t SR1;
+    uint8_t SR2;
+    uint8_t SR3;
+
+    // Campos interpretados
+    uint8_t BUSY;
+    uint8_t WEL;
+    uint8_t QE;
+    uint8_t CMP;
+    uint8_t SRL;
+    uint8_t BP;
+    uint8_t LB;
+} QSPI_StatusRegs_t;
+
 #define TEST_ADDRESS 0x00010000
 
 
@@ -59,6 +74,8 @@ HAL_StatusTypeDef QSPI_Write_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t valu
 HAL_StatusTypeDef QSPI_Write_Status_Reg2(QSPI_HandleTypeDef *hqspi, uint8_t value);
 HAL_StatusTypeDef QSPI_Clear_CMP(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_Set_Status_Config(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_EnableMemoryMapped_Safe(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi);
 
 HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t SectorAddress);
 
@@ -74,9 +91,13 @@ HAL_StatusTypeDef QSPI_Read_Data_Quad_144(QSPI_HandleTypeDef *hqspi, uint8_t *pD
 HAL_StatusTypeDef QSPI_Read_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t *pStatus);
 HAL_StatusTypeDef QSPI_Read_Status_Reg2(QSPI_HandleTypeDef *hqspi, uint8_t *pStatus);
 HAL_StatusTypeDef QSPI_Read_Status_Reg3(QSPI_HandleTypeDef *hqspi, uint8_t *pStatus);
+HAL_StatusTypeDef QSPI_ReadStatusAll(QSPI_HandleTypeDef *hqspi, QSPI_StatusRegs_t *status);
 HAL_StatusTypeDef QSPI_Check_4Byte_Mode(QSPI_HandleTypeDef *hqspi, uint8_t *is4Byte);
 HAL_StatusTypeDef QSPI_Check_QE(QSPI_HandleTypeDef *hqspi, uint8_t *qe_state);
 HAL_StatusTypeDef QSPI_Check_BP(QSPI_HandleTypeDef *hqspi, uint8_t *bp_value);
+
+
+HAL_StatusTypeDef QSPI_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t address, const char *pattern, uint32_t size);
 
 /* USER CODE END Prototypes */
 
