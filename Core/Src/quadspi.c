@@ -538,6 +538,33 @@ HAL_StatusTypeDef QSPI_Write_String_Quad(QSPI_HandleTypeDef *hqspi, const char *
     return QSPI_Wait_For_Ready_Manual(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 }
 
+HAL_StatusTypeDef QSPI_Write_Data_Quad(QSPI_HandleTypeDef *hqspi, const uint8_t *pData, uint32_t size, uint32_t Address)
+{
+    QSPI_CommandTypeDef sCommand;
+
+    if (size > W25Q256JV_PAGE_SIZE) size = W25Q256JV_PAGE_SIZE;
+
+    if (QSPI_WriteEnable(hqspi) != HAL_OK) return HAL_ERROR;
+
+    memset(&sCommand, 0, sizeof(sCommand));
+    sCommand.InstructionMode   = QSPI_INSTRUCTION_1_LINE;
+    sCommand.Instruction       = W25Q256JV_PAGE_PROGRAM_QUAD_INPUT_CMD; // 0x32
+    sCommand.AddressMode       = QSPI_ADDRESS_1_LINE;
+    sCommand.AddressSize       = QSPI_ADDRESS_32_BITS;
+    sCommand.Address           = Address;
+    sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+    sCommand.DataMode          = QSPI_DATA_4_LINES;
+    sCommand.DummyCycles       = 0;
+    sCommand.NbData            = size;
+    sCommand.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;
+
+    if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) return HAL_ERROR;
+
+    if (HAL_QSPI_Transmit(hqspi, (uint8_t *)pData, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) return HAL_ERROR;
+
+    return QSPI_Wait_For_Ready_Manual(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
+}
+
 
 HAL_StatusTypeDef QSPI_Read_Data_SPI(QSPI_HandleTypeDef *hqspi, uint8_t *buffer, uint32_t address, uint32_t size)
 {
@@ -581,7 +608,7 @@ HAL_StatusTypeDef QSPI_Read_Data_Dual(QSPI_HandleTypeDef *hqspi, uint8_t *buffer
     return HAL_QSPI_Receive(hqspi, buffer, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 }
 
-HAL_StatusTypeDef QSPI_Read_Data_Quad(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size)
+HAL_StatusTypeDef QSPI_Fast_Read_Quad_Output(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size)
 {
     QSPI_CommandTypeDef sCommand;
 
@@ -891,13 +918,8 @@ HAL_StatusTypeDef QSPI_Set_Status_Config(QSPI_HandleTypeDef *hqspi)
 
 HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi)
 {
-    // Abortar modo Memory-Mapped
-    if (HAL_QSPI_Abort(hqspi) != HAL_OK)
-        return HAL_ERROR;
-
-    // Esperar que el periférico y la flash queden listos
-    if (QSPI_Wait_For_Ready_Manual(hqspi, 1000) != HAL_OK)
-        return HAL_ERROR;
+    if (HAL_QSPI_Abort(hqspi) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Wait_For_Ready_Manual(hqspi, 1000) != HAL_OK) return HAL_ERROR;
 
     return HAL_OK;
 }
@@ -939,13 +961,63 @@ HAL_StatusTypeDef QSPI_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t address, con
 
     if (QSPI_Wait_For_Ready_Manual(hqspi, 1000) != HAL_OK) return HAL_ERROR;
     if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
-    if (QSPI_Sector_Erase(hqspi, TEST_ADDRESS) != HAL_OK) return HAL_ERROR;
-    if (QSPI_Write_String_Quad(hqspi, pattern, TEST_ADDRESS) != HAL_OK) return HAL_ERROR;
-    if (QSPI_Read_Data_Quad(hqspi, verify_buf, address, test_size) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Sector_Erase(hqspi, TEST_ADDR) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Write_String_Quad(hqspi, pattern, TEST_ADDR) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Fast_Read_Quad_Output(hqspi, verify_buf, address, test_size) != HAL_OK) return HAL_ERROR;
 
     if (memcmp(pattern, verify_buf, test_size) != 0) return HAL_ERROR;
 
     return HAL_OK;
+}
+
+HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_1_4(QSPI_HandleTypeDef *hqspi)
+{
+    QSPI_CommandTypeDef sCommand = {0};
+    QSPI_MemoryMappedTypeDef sMemMappedCfg = {0};
+
+    /* --- Configuración del comando --- */
+    sCommand.InstructionMode   = QSPI_INSTRUCTION_1_LINE;   // opcode en 1 línea
+    sCommand.Instruction       = 0x6C;                      // Fast Read Quad Output (4-byte)
+    sCommand.AddressMode       = QSPI_ADDRESS_1_LINE;       // dirección en 1 línea
+    sCommand.AddressSize       = QSPI_ADDRESS_32_BITS;      // 4 bytes de dirección
+    sCommand.DataMode          = QSPI_DATA_4_LINES;         // datos en 4 líneas
+    sCommand.DummyCycles       = 8;                         // según datasheet (8 dummy típicos)
+    sCommand.DdrMode           = QSPI_DDR_MODE_DISABLE;
+    sCommand.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;  // opcode en cada transacción
+    sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE; // no hay modo bits
+
+    /* --- Configuración de memory-mapped --- */
+    sMemMappedCfg.TimeOutActivation = QSPI_TIMEOUT_COUNTER_DISABLE; // sin timeout
+    sMemMappedCfg.TimeOutPeriod     = 0;
+
+    /* --- Habilitar modo Memory-Mapped --- */
+    return HAL_QSPI_MemoryMapped(hqspi, &sCommand, &sMemMappedCfg);
+}
+
+HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi)
+{
+    QSPI_CommandTypeDef sCommand = {0};
+    QSPI_MemoryMappedTypeDef sMemMappedCfg = {0};
+
+    /* --- Configuración del comando --- */
+    sCommand.InstructionMode      = QSPI_INSTRUCTION_1_LINE;  // opcode en 1 línea
+    sCommand.Instruction          = 0xEC;                     // Fast Read Quad I/O (4-byte)
+    sCommand.AddressMode          = QSPI_ADDRESS_4_LINES;     // dirección en 4 líneas
+    sCommand.AddressSize          = QSPI_ADDRESS_32_BITS;
+    sCommand.AlternateByteMode    = QSPI_ALTERNATE_BYTES_4_LINES; // modo bits en 4 líneas
+    sCommand.AlternateBytesSize   = QSPI_ALTERNATE_BYTES_8_BITS;  // 8 bits de modo (generalmente 0x00)
+    sCommand.AlternateBytes       = 0x00;                      // modo bits = 0
+    sCommand.DataMode             = QSPI_DATA_4_LINES;
+    sCommand.DummyCycles          = 4;                         // según datasheet Winbond (6 dummy típicos)
+    sCommand.DdrMode              = QSPI_DDR_MODE_DISABLE;
+    sCommand.SIOOMode             = QSPI_SIOO_INST_EVERY_CMD;
+
+    /* --- Configuración de memory-mapped --- */
+    sMemMappedCfg.TimeOutActivation = QSPI_TIMEOUT_COUNTER_DISABLE;
+    sMemMappedCfg.TimeOutPeriod     = 0;
+
+    /* --- Habilitar modo Memory-Mapped --- */
+    return HAL_QSPI_MemoryMapped(hqspi, &sCommand, &sMemMappedCfg);
 }
 
 /* USER CODE END 1 */

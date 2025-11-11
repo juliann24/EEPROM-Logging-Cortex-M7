@@ -53,8 +53,9 @@ typedef struct {
     uint8_t LB;
 } QSPI_StatusRegs_t;
 
-#define TEST_ADDRESS 0x00010000
-
+#define TEST_ADDR       0x000000      // dirección dentro de la flash
+#define QSPI_BASE_ADDR  0x90000000U   // base del mapeo en memoria
+#define TEST_STRING     "Hola QSPI!"
 
 /* USER CODE END Private defines */
 
@@ -74,18 +75,20 @@ HAL_StatusTypeDef QSPI_Write_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t valu
 HAL_StatusTypeDef QSPI_Write_Status_Reg2(QSPI_HandleTypeDef *hqspi, uint8_t value);
 HAL_StatusTypeDef QSPI_Clear_CMP(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_Set_Status_Config(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_EnableMemoryMapped_Safe(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_1_4(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi);
 
 HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t SectorAddress);
 
 HAL_StatusTypeDef QSPI_Write_Data_SPI(QSPI_HandleTypeDef *hqspi, const uint8_t *buffer, uint32_t address, uint32_t size);
 HAL_StatusTypeDef QSPI_Write_String_Dual(QSPI_HandleTypeDef *hqspi, const char *pString, uint32_t Address);
 HAL_StatusTypeDef QSPI_Write_String_Quad(QSPI_HandleTypeDef *hqspi, const char *pString, uint32_t Address);
+HAL_StatusTypeDef QSPI_Write_Data_Quad(QSPI_HandleTypeDef *hqspi, const uint8_t *pData, uint32_t size, uint32_t Address);
 
 HAL_StatusTypeDef QSPI_Read_Data_SPI(QSPI_HandleTypeDef *hqspi, uint8_t *buffer, uint32_t address, uint32_t size);
 HAL_StatusTypeDef QSPI_Read_Data_Dual(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size);
-HAL_StatusTypeDef QSPI_Read_Data_Quad(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size);
+HAL_StatusTypeDef QSPI_Fast_Read_Quad_Output(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size);
 HAL_StatusTypeDef QSPI_Read_Data_Quad_144(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size);
 
 HAL_StatusTypeDef QSPI_Read_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t *pStatus);
