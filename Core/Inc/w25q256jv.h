@@ -72,10 +72,17 @@
   */  
 #define W25Q256JV_JEDEC_ID_SIZE          	  3         // El JEDEC ID consta de 3 bytes (Fabricante, Tipo, Capacidad)
 #define W25Q256JV_JEDEC_ID 			  		  0xEF      // ID del fabricante Winbond
-#define W25Q256JV_FLASH_SIZE                  0x2000000 /* 128 MBits => 16MBytes */
-#define W25Q256JV_SECTOR_SIZE                 0x10000   /* 256 sectors of 64KBytes */
-#define W25Q256JV_SUBSECTOR_SIZE              0x1000    /* 4096 subsectors of 4kBytes */
-#define W25Q256JV_PAGE_SIZE                   0x100     /* 65536 pages of 256 bytes */
+
+#define W25Q256JV_PAGE_SIZE             256U        // 256 bytes por página
+#define W25Q256JV_SECTOR_SIZE           4096U       // 4 KB por sector
+#define W25Q256JV_BLOCK_32K_SIZE        32768U      // 32 KB por bloque
+#define W25Q256JV_BLOCK_64K_SIZE        65536U      // 64 KB por bloque
+#define W25Q256JV_FLASH_SIZE            0x2000000U  // 32 MB (256 Mbit)
+
+#define W25Q256JV_PAGE_COUNT            (W25Q256JV_FLASH_SIZE / W25Q256JV_PAGE_SIZE)
+#define W25Q256JV_SECTOR_COUNT          (W25Q256JV_FLASH_SIZE / W25Q256JV_SECTOR_SIZE)
+#define W25Q256JV_BLOCK_32K_COUNT       (W25Q256JV_FLASH_SIZE / W25Q256JV_BLOCK_32K_SIZE)
+#define W25Q256JV_BLOCK_64K_COUNT       (W25Q256JV_FLASH_SIZE / W25Q256JV_BLOCK_64K_SIZE)
 
 #define W25Q256JV_DUMMY_CYCLES_READ           8
 #define W25Q256JV_DUMMY_CYCLES_READ_QUAD      10
@@ -84,16 +91,10 @@
 #define W25Q256JV_SECTOR_ERASE_MAX_TIME       3000
 #define W25Q256JV_SUBSECTOR_ERASE_MAX_TIME    800
 
-/** 
-  * @brief  W25Q256JV Commands
-  */  
  /******************************************************************************/
  /* COMANDOS DE MEMORIA QSPI                       */
  /******************************************************************************/
- /**
-   * @brief  Comandos de instrucciones del Winbond W25Q256JV
-   * (Extraídos de la hoja de datos, sección 8.x)
-   */
+
  #define W25Q256JV_READ_JEDEC_ID_CMD 			   0x9F      // Instrucción para leer el JEDEC ID
  #define W25Q256JV_WRITE_ENABLE_CMD                0x06U
  #define W25Q256JV_WRITE_DISABLE_CMD               0x04U

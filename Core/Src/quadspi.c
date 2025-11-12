@@ -393,9 +393,12 @@ HAL_StatusTypeDef QSPI_WriteEnable(QSPI_HandleTypeDef *hqspi)
     return QSPI_Wait_For_Ready_Manual(hqspi,HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 }
 
-HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t SectorAddress)
+HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t StartSectorAddress, uint32_t EndSectorAddress)
 {
     QSPI_CommandTypeDef sCommand;
+
+    StartSectorAddress = StartSectorAddress
+			- StartSectorAddress % W25Q256JV_SECTOR_SIZE;
 
     if (QSPI_WriteEnable(hqspi) != HAL_OK)
         return HAL_ERROR;
@@ -405,18 +408,54 @@ HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t SectorAd
     sCommand.Instruction       = W25Q256JV_SECTOR_ERASE_CMD; // 0x20
     sCommand.AddressMode       = QSPI_ADDRESS_1_LINE;
     sCommand.AddressSize       = QSPI_ADDRESS_32_BITS;
-    sCommand.Address           = SectorAddress;
+    sCommand.Address           = StartSectorAddress;
     sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
     sCommand.DataMode          = QSPI_DATA_NONE;
     sCommand.DummyCycles       = 0;
     sCommand.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;
 
-    if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-        return HAL_ERROR;
+	while (EndSectorAddress >= StartSectorAddress) {
+		sCommand.Address = (StartSectorAddress & 0x0FFFFFFF);
 
-    return QSPI_Wait_For_Ready_Manual(hqspi, W25Q256JV_SECTOR_ERASE_MAX_TIME);
+		if (QSPI_WriteEnable(hqspi) != HAL_OK) {
+			return HAL_ERROR;
+		}
+
+		if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE)
+				!= HAL_OK) {
+			return HAL_ERROR;
+		}
+		StartSectorAddress += W25Q256JV_SECTOR_SIZE;
+
+		if (QSPI_Wait_For_Ready_Manual(hqspi,HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
+			return HAL_ERROR;
+		}
+	}
+
+	return HAL_OK;
 }
 
+HAL_StatusTypeDef QSPI_Chip_Erase(QSPI_HandleTypeDef *hqspi)
+{
+    QSPI_CommandTypeDef sCommand;
+
+    if (QSPI_Wait_For_Ready_Manual(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) return HAL_ERROR;
+
+    if (QSPI_WriteEnable(hqspi) != HAL_OK) return HAL_ERROR;
+
+    memset(&sCommand, 0, sizeof(sCommand));
+    sCommand.InstructionMode   = QSPI_INSTRUCTION_1_LINE;
+    sCommand.Instruction       = W25Q256JV_CHIP_ERASE_CMD;   // 0xC7 (o 0x60)
+    sCommand.AddressMode       = QSPI_ADDRESS_NONE;
+    sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+    sCommand.DataMode          = QSPI_DATA_NONE;
+    sCommand.DummyCycles       = 0;
+    sCommand.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;
+
+    if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) return HAL_ERROR;
+
+    return (QSPI_Wait_For_Ready_Manual(hqspi, 300000) != HAL_OK);
+}
 
 HAL_StatusTypeDef QSPI_Write_Data_SPI(QSPI_HandleTypeDef *hqspi, const uint8_t *buffer, uint32_t address, uint32_t size)
 {
@@ -537,33 +576,64 @@ HAL_StatusTypeDef QSPI_Write_String_Quad(QSPI_HandleTypeDef *hqspi, const char *
 
     return QSPI_Wait_For_Ready_Manual(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 }
-
-HAL_StatusTypeDef QSPI_Write_Data_Quad(QSPI_HandleTypeDef *hqspi, const uint8_t *pData, uint32_t size, uint32_t Address)
+HAL_StatusTypeDef QSPI_Write_Data_Quad(QSPI_HandleTypeDef *hqspi,
+                                       const uint8_t *pData,
+                                       uint32_t size,
+                                       uint32_t address)
 {
     QSPI_CommandTypeDef sCommand;
+    HAL_StatusTypeDef status;
+    uint32_t current_addr = address;
+    uint32_t end_addr = address + size;
+    uint32_t current_size;
 
-    if (size > W25Q256JV_PAGE_SIZE) size = W25Q256JV_PAGE_SIZE;
+    while (current_addr < end_addr)
+    {
+        // 1️⃣ Calcular cuánto escribir en esta página
+        uint32_t addr_in_page = current_addr % W25Q256JV_PAGE_SIZE;
+        current_size = W25Q256JV_PAGE_SIZE - addr_in_page;
+        if ((end_addr - current_addr) < current_size)
+            current_size = end_addr - current_addr;
 
-    if (QSPI_WriteEnable(hqspi) != HAL_OK) return HAL_ERROR;
+        // 2️⃣ Habilitar escritura
+        if (QSPI_WriteEnable(hqspi) != HAL_OK)
+            return HAL_ERROR;
 
-    memset(&sCommand, 0, sizeof(sCommand));
-    sCommand.InstructionMode   = QSPI_INSTRUCTION_1_LINE;
-    sCommand.Instruction       = W25Q256JV_PAGE_PROGRAM_QUAD_INPUT_CMD; // 0x32
-    sCommand.AddressMode       = QSPI_ADDRESS_1_LINE;
-    sCommand.AddressSize       = QSPI_ADDRESS_32_BITS;
-    sCommand.Address           = Address;
-    sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
-    sCommand.DataMode          = QSPI_DATA_4_LINES;
-    sCommand.DummyCycles       = 0;
-    sCommand.NbData            = size;
-    sCommand.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;
+        // 3️⃣ Configurar comando de programación
+        memset(&sCommand, 0, sizeof(sCommand));
+        sCommand.InstructionMode   = QSPI_INSTRUCTION_1_LINE;
+        sCommand.Instruction       = W25Q256JV_PAGE_PROGRAM_QUAD_INPUT_CMD; // 0x32
+        sCommand.AddressMode       = QSPI_ADDRESS_1_LINE;
+        sCommand.AddressSize       = QSPI_ADDRESS_32_BITS;
+        sCommand.Address           = current_addr;
+        sCommand.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+        sCommand.DataMode          = QSPI_DATA_4_LINES;
+        sCommand.DummyCycles       = 0;
+        sCommand.NbData            = current_size;
+        sCommand.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;
 
-    if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) return HAL_ERROR;
+        // 4️⃣ Enviar comando + datos
+        status = HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
+        if (status != HAL_OK)
+            return status;
 
-    if (HAL_QSPI_Transmit(hqspi, (uint8_t *)pData, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) return HAL_ERROR;
+        status = HAL_QSPI_Transmit(hqspi, (uint8_t *)pData, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
+        if (status != HAL_OK)
+            return status;
 
-    return QSPI_Wait_For_Ready_Manual(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
+        // 5️⃣ Esperar que termine
+        status = QSPI_Wait_For_Ready_Manual(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
+        if (status != HAL_OK)
+            return status;
+
+        // 6️⃣ Avanzar
+        current_addr += current_size;
+        pData += current_size;
+    }
+
+    return HAL_OK;
 }
+
 
 
 HAL_StatusTypeDef QSPI_Read_Data_SPI(QSPI_HandleTypeDef *hqspi, uint8_t *buffer, uint32_t address, uint32_t size)
@@ -961,7 +1031,7 @@ HAL_StatusTypeDef QSPI_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t address, con
 
     if (QSPI_Wait_For_Ready_Manual(hqspi, 1000) != HAL_OK) return HAL_ERROR;
     if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
-    if (QSPI_Sector_Erase(hqspi, TEST_ADDR) != HAL_OK) return HAL_ERROR;
+    if (QSPI_Sector_Erase(hqspi, TEST_ADDR, TEST_ADDR + W25Q256JV_SECTOR_SIZE) != HAL_OK) return HAL_ERROR;
     if (QSPI_Write_String_Quad(hqspi, pattern, TEST_ADDR) != HAL_OK) return HAL_ERROR;
     if (QSPI_Fast_Read_Quad_Output(hqspi, verify_buf, address, test_size) != HAL_OK) return HAL_ERROR;
 
@@ -1018,6 +1088,30 @@ HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi)
 
     /* --- Habilitar modo Memory-Mapped --- */
     return HAL_QSPI_MemoryMapped(hqspi, &sCommand, &sMemMappedCfg);
+}
+
+HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t test_addr, const char *test_string)
+{
+    uint32_t len = strlen(test_string);
+    uint8_t read_buffer[W25Q256JV_PAGE_SIZE] = {0};
+    HAL_StatusTypeDef status;
+
+    if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
+
+    if (QSPI_Sector_Erase(hqspi, test_addr, test_addr + W25Q256JV_SECTOR_SIZE) != HAL_OK) return HAL_ERROR;
+
+    if (QSPI_Write_Data_Quad(hqspi, (uint8_t *)test_string, len, test_addr) != HAL_OK) return HAL_ERROR;
+
+    if (QSPI_EnableMemoryMapped_1_4_4(hqspi) != HAL_OK) return HAL_ERROR;
+
+    volatile uint8_t *mapped_ptr = (volatile uint8_t *)(QSPI_BASE_ADDR + test_addr);
+    for (uint32_t i = 0; i < len; i++) {
+        read_buffer[i] = mapped_ptr[i];
+    }
+
+    if (memcmp(test_string, read_buffer, len) != 0) return HAL_ERROR;
+
+    return HAL_OK;
 }
 
 /* USER CODE END 1 */

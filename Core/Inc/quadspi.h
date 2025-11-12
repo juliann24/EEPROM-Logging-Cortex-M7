@@ -54,6 +54,7 @@ typedef struct {
 } QSPI_StatusRegs_t;
 
 #define TEST_ADDR       0x000000      // dirección dentro de la flash
+#define TEST_ADDR_2       0x001000      // dirección dentro de la flash
 #define QSPI_BASE_ADDR  0x90000000U   // base del mapeo en memoria
 #define TEST_STRING     "Hola QSPI!"
 
@@ -79,7 +80,8 @@ HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_1_4(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi);
 
-HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t SectorAddress);
+HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t StartSectorAddress, uint32_t EndSectorAddress);
+HAL_StatusTypeDef QSPI_Chip_Erase(QSPI_HandleTypeDef *hqspi);
 
 HAL_StatusTypeDef QSPI_Write_Data_SPI(QSPI_HandleTypeDef *hqspi, const uint8_t *buffer, uint32_t address, uint32_t size);
 HAL_StatusTypeDef QSPI_Write_String_Dual(QSPI_HandleTypeDef *hqspi, const char *pString, uint32_t Address);
@@ -101,6 +103,8 @@ HAL_StatusTypeDef QSPI_Check_BP(QSPI_HandleTypeDef *hqspi, uint8_t *bp_value);
 
 
 HAL_StatusTypeDef QSPI_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t address, const char *pattern, uint32_t size);
+HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t test_addr, const char *test_string);
+HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest_AllSectors(QSPI_HandleTypeDef *hqspi, const char *test_string, uint32_t sector_step);
 
 /* USER CODE END Prototypes */
 
