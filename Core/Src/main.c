@@ -24,6 +24,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+COM_InitTypeDef BspCOMInit;
+
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
@@ -128,14 +130,15 @@ int main(void)
       }
   }
 
-
-
   /* USER CODE END 2 */
 
   /* Initialize leds */
   BSP_LED_Init(LED_GREEN);
   BSP_LED_Init(LED_YELLOW);
   BSP_LED_Init(LED_RED);
+
+  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
+  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */

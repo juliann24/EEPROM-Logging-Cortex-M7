@@ -19,10 +19,10 @@ void MX_QUADSPI_Init(void)
   /* USER CODE END QUADSPI_Init 1 */
   hqspi.Instance = QUADSPI;
   hqspi.Init.ClockPrescaler = 1;
-  hqspi.Init.FifoThreshold = 1;
+  hqspi.Init.FifoThreshold = 4;
   hqspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_HALFCYCLE;
-  hqspi.Init.FlashSize = 25;
-  hqspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_6_CYCLE;
+  hqspi.Init.FlashSize = 24;
+  hqspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
   hqspi.Init.ClockMode = QSPI_CLOCK_MODE_0;
   hqspi.Init.FlashID = QSPI_FLASH_ID_1;
   hqspi.Init.DualFlash = QSPI_DUALFLASH_DISABLE;
@@ -131,6 +131,19 @@ void HAL_QSPI_MspDeInit(QSPI_HandleTypeDef* qspiHandle)
 }
 
 /* USER CODE BEGIN 1 */
+
+HAL_StatusTypeDef QSPI_Default_Init(void) {
+	hqspi.Instance = QUADSPI;
+	if (HAL_QSPI_DeInit(&hqspi) != HAL_OK) return HAL_ERROR;
+
+	MX_QUADSPI_Init();
+
+	if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) return HAL_ERROR;
+
+	HAL_Delay(100);
+
+	return HAL_OK;
+}
 
 HAL_StatusTypeDef QSPI_Read_JEDEC_ID(QSPI_HandleTypeDef *hqspi, uint8_t *pData)
 {
@@ -400,8 +413,9 @@ HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t StartSec
     StartSectorAddress = StartSectorAddress
 			- StartSectorAddress % W25Q256JV_SECTOR_SIZE;
 
-    if (QSPI_WriteEnable(hqspi) != HAL_OK)
-        return HAL_ERROR;
+    EndSectorAddress = EndSectorAddress - (EndSectorAddress % W25Q256JV_SECTOR_SIZE)
+                       + (W25Q256JV_SECTOR_SIZE - 1);
+
 
     memset(&sCommand, 0, sizeof(sCommand));
     sCommand.InstructionMode   = QSPI_INSTRUCTION_1_LINE;
@@ -415,7 +429,7 @@ HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t StartSec
     sCommand.SIOOMode          = QSPI_SIOO_INST_EVERY_CMD;
 
 	while (EndSectorAddress >= StartSectorAddress) {
-		sCommand.Address = (StartSectorAddress & 0x0FFFFFFF);
+		sCommand.Address = StartSectorAddress;
 
 		if (QSPI_WriteEnable(hqspi) != HAL_OK) {
 			return HAL_ERROR;
@@ -425,11 +439,12 @@ HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t StartSec
 				!= HAL_OK) {
 			return HAL_ERROR;
 		}
-		StartSectorAddress += W25Q256JV_SECTOR_SIZE;
 
 		if (QSPI_Wait_For_Ready_Manual(hqspi,HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) {
 			return HAL_ERROR;
 		}
+
+		StartSectorAddress += W25Q256JV_SECTOR_SIZE;
 	}
 
 	return HAL_OK;
@@ -576,6 +591,7 @@ HAL_StatusTypeDef QSPI_Write_String_Quad(QSPI_HandleTypeDef *hqspi, const char *
 
     return QSPI_Wait_For_Ready_Manual(hqspi, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 }
+
 HAL_StatusTypeDef QSPI_Write_Data_Quad(QSPI_HandleTypeDef *hqspi,
                                        const uint8_t *pData,
                                        uint32_t size,
@@ -633,8 +649,6 @@ HAL_StatusTypeDef QSPI_Write_Data_Quad(QSPI_HandleTypeDef *hqspi,
 
     return HAL_OK;
 }
-
-
 
 HAL_StatusTypeDef QSPI_Read_Data_SPI(QSPI_HandleTypeDef *hqspi, uint8_t *buffer, uint32_t address, uint32_t size)
 {
@@ -1094,7 +1108,6 @@ HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t
 {
     uint32_t len = strlen(test_string);
     uint8_t read_buffer[W25Q256JV_PAGE_SIZE] = {0};
-    HAL_StatusTypeDef status;
 
     if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
 
