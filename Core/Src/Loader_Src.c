@@ -42,6 +42,12 @@ Init(void) {
 
     __HAL_RCC_QSPI_FORCE_RESET();  //completely reset peripheral
     __HAL_RCC_QSPI_RELEASE_RESET();
+
+    if(HAL_QSPI_DeInit(&hqspi) != HAL_OK) {
+    	__set_PRIMASK(1); //disable interrupts
+    	return LOADER_FAIL;
+    }
+
     MX_QUADSPI_Init();
 
     if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) {
@@ -80,8 +86,9 @@ Write(uint32_t Address, uint32_t Size, uint8_t* buffer) {
         return LOADER_FAIL;
     }
 
+    uint32_t start = (Address >= 0x90000000U) ? (Address - 0x90000000U) : Address;
 
-    if (QSPI_Write_Data_Quad(&hqspi, (uint8_t*) buffer, (Address & (0x0fffffff)), Size) != HAL_OK) {
+    if (QSPI_Write_Data_Quad(&hqspi, (uint8_t*) buffer, Size, start) != HAL_OK) {
         __set_PRIMASK(1); //disable interrupts
         return LOADER_FAIL;
     }
@@ -107,8 +114,10 @@ SectorErase(uint32_t EraseStartAddress, uint32_t EraseEndAddress) {
         return LOADER_FAIL;
     }
 
+    uint32_t start = (EraseStartAddress >= 0x90000000U) ? (EraseStartAddress - 0x90000000U) : EraseStartAddress;
+    uint32_t end   = (EraseEndAddress   >= 0x90000000U) ? (EraseEndAddress   - 0x90000000U) : EraseEndAddress;
 
-    if (QSPI_Sector_Erase(&hqspi, EraseStartAddress, EraseEndAddress) != HAL_OK) {
+    if (QSPI_Sector_Erase(&hqspi, start, end) != HAL_OK){
         __set_PRIMASK(1); //disable interrupts
         return LOADER_FAIL;
     }
@@ -240,10 +249,26 @@ Verify(uint32_t MemoryAddr, uint32_t RAMBufferAddr, uint32_t Size, uint32_t miss
     uint64_t checksum;
     Size *= 4;
 
+    if (HAL_QSPI_Abort(&hqspi) != HAL_OK) {
+            __set_PRIMASK(1); //disable interrupts
+            return LOADER_FAIL;
+        }
+
+    if (QSPI_AutoPollingMemReady() != HAL_OK) {
+            __set_PRIMASK(1); //disable interrupts
+            return LOADER_FAIL;
+        }
+
     if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) {
+
         __set_PRIMASK(1); //disable interrupts
         return LOADER_FAIL;
-    }
+    	}
+
+    if (QSPI_AutoPollingMemReady() != HAL_OK) {
+            __set_PRIMASK(1); //disable interrupts
+            return LOADER_FAIL;
+        }
 
     checksum = CheckSum((uint32_t) MemoryAddr + (missalignement & 0xf),
                         Size - ((missalignement >> 16) & 0xF), InitVal);

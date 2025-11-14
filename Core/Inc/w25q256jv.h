@@ -73,11 +73,11 @@
 #define W25Q256JV_JEDEC_ID_SIZE          	  3         // El JEDEC ID consta de 3 bytes (Fabricante, Tipo, Capacidad)
 #define W25Q256JV_JEDEC_ID 			  		  0xEF      // ID del fabricante Winbond
 
-#define W25Q256JV_PAGE_SIZE             256U        // 256 bytes por página
-#define W25Q256JV_SECTOR_SIZE           4096U       // 4 KB por sector
 #define W25Q256JV_BLOCK_32K_SIZE        32768U      // 32 KB por bloque
 #define W25Q256JV_BLOCK_64K_SIZE        65536U      // 64 KB por bloque
-#define W25Q256JV_FLASH_SIZE            0x2000000U  // 32 MB (256 Mbit)
+#define W25Q256JV_FLASH_SIZE      (32 * 1024 * 1024U)  // 32 MB
+#define W25Q256JV_SECTOR_SIZE     4096U                // 4 KB
+#define W25Q256JV_PAGE_SIZE       256U                 // 256 bytes
 
 #define W25Q256JV_PAGE_COUNT            (W25Q256JV_FLASH_SIZE / W25Q256JV_PAGE_SIZE)
 #define W25Q256JV_SECTOR_COUNT          (W25Q256JV_FLASH_SIZE / W25Q256JV_SECTOR_SIZE)

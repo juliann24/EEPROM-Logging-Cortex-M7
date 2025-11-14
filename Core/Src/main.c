@@ -24,8 +24,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 
-COM_InitTypeDef BspCOMInit;
-
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
 
@@ -38,6 +36,9 @@ static void MPU_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 #define SECTORS_COUNT 100
+const __attribute__((section(".extFlash"))) uint8_t buf[] = "Hello world from H743 QSPI";
+uint8_t readbuf[40];
+
 /* USER CODE END 0 */
 
 /**
@@ -86,59 +87,61 @@ int main(void)
   MX_GPIO_Init();
   MX_QUADSPI_Init();
   /* USER CODE BEGIN 2 */
-
-  uint8_t buffer_test[W25Q256JV_SECTOR_SIZE];
-  uint32_t var = 0;
-
+//  uint8_t buffer_test[W25Q256JV_SECTOR_SIZE];
+//  uint32_t var = 0;
+//
+//  // Cadena base a repetir
+//  const char pattern[] = "JULIAN";
+//  const size_t pattern_len = sizeof(pattern) - 1; // sin el '\0'
+//
   if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) Error_Handler();
-
-  for (var = 0; var < W25Q256JV_SECTOR_SIZE; var++) {
-      buffer_test[var] = (var & 0xff);
-  }
-
-  for (var = 0; var < SECTORS_COUNT; var++) {
-
-      if (QSPI_Sector_Erase(&hqspi,
-    		  	  	  	  	var * W25Q256JV_SECTOR_SIZE,
-                           (var + 1) * W25Q256JV_SECTOR_SIZE - 1) != HAL_OK) Error_Handler();
-
-      if (QSPI_Write_Data_Quad(&hqspi, buffer_test, sizeof(buffer_test), var * W25Q256JV_SECTOR_SIZE) != HAL_OK) Error_Handler();
-
-  }
-
+//
+//  for (var = 0; var < W25Q256JV_SECTOR_SIZE; var++) {
+//      buffer_test[var] = pattern[var % pattern_len];
+//  }
+//
+//  for (var = 0; var < SECTORS_COUNT; var++) {
+//
+//      if (QSPI_Sector_Erase(&hqspi,
+//                            var * W25Q256JV_SECTOR_SIZE,
+//                            (var + 1) * W25Q256JV_SECTOR_SIZE - 1) != HAL_OK)
+//          Error_Handler();
+//
+//      if (QSPI_Write_Data_Quad(&hqspi, buffer_test, sizeof(buffer_test),
+//                               var * W25Q256JV_SECTOR_SIZE) != HAL_OK)
+//          Error_Handler();
+//  }
+//
   if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) Error_Handler();
-  for (var = 0; var < SECTORS_COUNT; var++) {
-      uint8_t *flash_ptr = (uint8_t *)(0x90000000 + var * W25Q256JV_SECTOR_SIZE);
-      int diff = memcmp(buffer_test, flash_ptr, W25Q256JV_SECTOR_SIZE);
+//
+//  // Verificación: comparar lo escrito con lo leído por memory-mapped
+//  for (var = 0; var < SECTORS_COUNT; var++) {
+//      uint8_t *flash_ptr = (uint8_t *)(0x90000000 + var * W25Q256JV_SECTOR_SIZE);
+//      int diff = memcmp(buffer_test, flash_ptr, W25Q256JV_SECTOR_SIZE);
+//
+//      if (diff != 0) {
+//          size_t i;
+//          for (i = 0; i < W25Q256JV_SECTOR_SIZE; i++) {
+//              if (buffer_test[i] != flash_ptr[i]) {
+//                  break;
+//              }
+//          }
+//
+//          volatile size_t mismatch_index = i;
+//          volatile uint8_t expected = buffer_test[i];
+//          volatile uint8_t actual = flash_ptr[i];
+//          volatile uint32_t flash_address = (uint32_t)&flash_ptr[i];
+//          Error_Handler();
+//      }
+//  }
 
-      if (diff != 0) {
-          // encontrar el primer byte diferente
-          size_t i;
-          for (i = 0; i < W25Q256JV_SECTOR_SIZE; i++) {
-              if (buffer_test[i] != flash_ptr[i]) {
-                  break;
-              }
-          }
-
-          // estas variables podés verlas en el debugger
-          volatile size_t mismatch_index = i;
-          volatile uint8_t expected = buffer_test[i];
-          volatile uint8_t actual = flash_ptr[i];
-          volatile uint32_t flash_address = (uint32_t)&flash_ptr[i];
-
-          Error_Handler(); // o breakpoint aquí
-      }
-  }
-
+  memcpy(readbuf, buf, sizeof(buf));
   /* USER CODE END 2 */
 
   /* Initialize leds */
   BSP_LED_Init(LED_GREEN);
   BSP_LED_Init(LED_YELLOW);
   BSP_LED_Init(LED_RED);
-
-  /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
-  BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -197,7 +200,7 @@ void SystemClock_Config(void)
 
   /** Configure the main internal regulator output voltage
   */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -209,12 +212,12 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 2;
-  RCC_OscInitStruct.PLL.PLLN = 12;
+  RCC_OscInitStruct.PLL.PLLN = 64;
   RCC_OscInitStruct.PLL.PLLP = 2;
-  RCC_OscInitStruct.PLL.PLLQ = 3;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
   RCC_OscInitStruct.PLL.PLLR = 2;
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
-  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOMEDIUM;
+  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -228,13 +231,13 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV1;
-  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
+  RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
