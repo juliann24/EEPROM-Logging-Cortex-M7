@@ -38,5 +38,4 @@
 ../Core/Src/quadspi.c:1100:19:QSPI_SelfTest	8
 ../Core/Src/quadspi.c:1119:19:QSPI_EnableMemoryMapped_1_1_4	1
 ../Core/Src/quadspi.c:1143:19:QSPI_EnableMemoryMapped_1_4_4	1
-../Core/Src/quadspi.c:1169:19:QSPI_EnableMemoryMapped_1_4_4_edit	1
-../Core/Src/quadspi.c:1196:19:QSPI_MemoryMapped_SelfTest	7
+../Core/Src/quadspi.c:1169:19:QSPI_MemoryMapped_SelfTest	7

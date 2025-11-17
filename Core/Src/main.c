@@ -35,10 +35,14 @@ static void MPU_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-#define SECTORS_COUNT 100
-const __attribute__((section(".extFlash"))) uint8_t buf[] = "Hello world from H743 QSPI";
+//#define SECTORS_COUNT 100
+//const __attribute__((section(".extFlash"))) uint8_t buf[] = "Hello world from H743 QSPI";
 uint8_t readbuf[40];
 
+typedef void (*pFunction)(void);
+pFunction JumpToApplication;
+
+#define APPLICATION_ADDRESS 0x90000000U
 /* USER CODE END 0 */
 
 /**
@@ -87,6 +91,17 @@ int main(void)
   MX_GPIO_Init();
   MX_QUADSPI_Init();
   /* USER CODE BEGIN 2 */
+  if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) Error_Handler();
+  if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) Error_Handler();
+
+  SCB_DisableDCache();
+  SCB_DisableICache();
+
+  SysTick->CTRL = 0;
+
+  JumpToApplication = (pFunction) (*(__IO uint32_t*) (APPLICATION_ADDRESS + 4));
+  __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
+  JumpToApplication();
 //  uint8_t buffer_test[W25Q256JV_SECTOR_SIZE];
 //  uint32_t var = 0;
 //
@@ -94,7 +109,7 @@ int main(void)
 //  const char pattern[] = "JULIAN";
 //  const size_t pattern_len = sizeof(pattern) - 1; // sin el '\0'
 //
-  if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) Error_Handler();
+//  if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) Error_Handler();
 //
 //  for (var = 0; var < W25Q256JV_SECTOR_SIZE; var++) {
 //      buffer_test[var] = pattern[var % pattern_len];
@@ -112,7 +127,7 @@ int main(void)
 //          Error_Handler();
 //  }
 //
-  if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) Error_Handler();
+//  if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) Error_Handler();
 //
 //  // Verificación: comparar lo escrito con lo leído por memory-mapped
 //  for (var = 0; var < SECTORS_COUNT; var++) {
@@ -135,7 +150,7 @@ int main(void)
 //      }
 //  }
 
-  memcpy(readbuf, buf, sizeof(buf));
+//  memcpy(readbuf, buf, sizeof(buf));
   /* USER CODE END 2 */
 
   /* Initialize leds */
@@ -272,6 +287,15 @@ void MPU_Config(void)
   MPU_InitStruct.IsShareable = MPU_ACCESS_NOT_SHAREABLE;
   MPU_InitStruct.IsCacheable = MPU_ACCESS_CACHEABLE;
   MPU_InitStruct.IsBufferable = MPU_ACCESS_BUFFERABLE;
+
+  HAL_MPU_ConfigRegion(&MPU_InitStruct);
+
+  /** Initializes and configures the Region and the memory to be protected
+  */
+  MPU_InitStruct.Number = MPU_REGION_NUMBER1;
+  MPU_InitStruct.Size = MPU_REGION_SIZE_1MB;
+  MPU_InitStruct.SubRegionDisable = 0x0;
+  MPU_InitStruct.DisableExec = MPU_INSTRUCTION_ACCESS_ENABLE;
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
   /* Enables the MPU */

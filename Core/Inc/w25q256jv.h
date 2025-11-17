@@ -114,6 +114,7 @@
  #define W25Q256JV_FAST_READ_DUAL_IO_CMD		   0xBBU
  #define W25Q256JV_FAST_READ_QUAD_OUT_CMD          0x6BU // Lectura rápida con salida Quad
  #define W25Q256JV_FAST_READ_QUAD_IO_CMD           0xEBU // Lectura rápida con E/S Quad (usado en quadspi.c)
+ #define W25Q256JV_FAST_READ_QUAD_IO_4BYTE_ADD_CMD 0xECU
 
  #define W25Q256JV_PAGE_PROGRAM_CMD                0x02U
  #define W25Q256JV_PAGE_PROGRAM_QUAD_INPUT_CMD     0x32U // Programación de Página Quad (usado en quadspi.c)

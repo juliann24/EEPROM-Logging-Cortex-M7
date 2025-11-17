@@ -80,7 +80,6 @@ HAL_StatusTypeDef QSPI_Set_Status_Config(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_1_4(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4_edit(QSPI_HandleTypeDef *hqspi);
 
 HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t StartSectorAddress, uint32_t EndSectorAddress);
 HAL_StatusTypeDef QSPI_Chip_Erase(QSPI_HandleTypeDef *hqspi);

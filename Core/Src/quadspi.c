@@ -1147,7 +1147,7 @@ HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi)
 
     /* --- Configuración del comando --- */
     sCommand.InstructionMode      = QSPI_INSTRUCTION_1_LINE;  // opcode en 1 línea
-    sCommand.Instruction          = 0xEC;                     // Fast Read Quad I/O (4-byte)
+    sCommand.Instruction          = W25Q256JV_FAST_READ_QUAD_IO_4BYTE_ADD_CMD;// Fast Read Quad I/O (4-byte)
     sCommand.AddressMode          = QSPI_ADDRESS_4_LINES;     // dirección en 4 líneas
     sCommand.AddressSize          = QSPI_ADDRESS_32_BITS;
     sCommand.AlternateByteMode    = QSPI_ALTERNATE_BYTES_4_LINES; // modo bits en 4 líneas
@@ -1165,33 +1165,6 @@ HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi)
     /* --- Habilitar modo Memory-Mapped --- */
     return HAL_QSPI_MemoryMapped(hqspi, &sCommand, &sMemMappedCfg);
 }
-
-HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4_edit(QSPI_HandleTypeDef *hqspi)
-{
-    QSPI_CommandTypeDef sCommand = {0};
-    QSPI_MemoryMappedTypeDef sMemMappedCfg = {0};
-
-    /* --- Configuración del comando --- */
-    sCommand.InstructionMode      = QSPI_INSTRUCTION_1_LINE;      // Opcode por 1 línea
-    sCommand.Instruction          = 0xEC;                         // Fast Read Quad I/O (4-byte addr)
-    sCommand.AddressMode          = QSPI_ADDRESS_4_LINES;         // Dirección en 4 líneas
-    sCommand.AddressSize          = QSPI_ADDRESS_32_BITS;
-    sCommand.AlternateByteMode    = QSPI_ALTERNATE_BYTES_4_LINES; // Modo bits en 4 líneas
-    sCommand.AlternateBytesSize   = QSPI_ALTERNATE_BYTES_8_BITS;  // 8 bits de modo
-    sCommand.AlternateBytes       = 0xFF;                         // Valor recomendado por Winbond
-    sCommand.DataMode             = QSPI_DATA_4_LINES;
-    sCommand.DummyCycles          = 8;                            // Requerido por W25Q256JV
-    sCommand.DdrMode              = QSPI_DDR_MODE_DISABLE;
-    sCommand.SIOOMode             = QSPI_SIOO_INST_ONLY_FIRST_CMD; // Solo al inicio (modo continuo)
-
-    /* --- Configuración de Memory-Mapped --- */
-    sMemMappedCfg.TimeOutActivation = QSPI_TIMEOUT_COUNTER_DISABLE;
-    sMemMappedCfg.TimeOutPeriod     = 0;
-
-    /* --- Activar modo Memory-Mapped --- */
-    return HAL_QSPI_MemoryMapped(hqspi, &sCommand, &sMemMappedCfg);
-}
-
 
 HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t test_addr, const char *test_string)
 {
