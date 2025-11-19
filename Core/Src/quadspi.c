@@ -232,36 +232,6 @@ HAL_StatusTypeDef QSPI_Wait_For_Ready_Autopoll(QSPI_HandleTypeDef *hqspi)
     return HAL_QSPI_AutoPolling(hqspi, &sCommand, &sConfig, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
 }
 
-HAL_StatusTypeDef QSPI_Wait_For_Ready_Manual(QSPI_HandleTypeDef *hqspi, uint32_t timeout)
-{
-    QSPI_CommandTypeDef sCommand;
-    uint8_t status = 0;
-    uint32_t tickstart = HAL_GetTick();
-
-    memset(&sCommand, 0, sizeof(sCommand));
-    sCommand.InstructionMode 	= QSPI_INSTRUCTION_1_LINE;
-    sCommand.Instruction     	= W25Q256JV_READ_STATUS_REG1_CMD; // 0x05
-    sCommand.AddressMode     	= QSPI_ADDRESS_NONE;
-    sCommand.AlternateByteMode 	= QSPI_ALTERNATE_BYTES_NONE;
-    sCommand.DataMode        	= QSPI_DATA_1_LINE;
-    sCommand.DummyCycles     	= 0;
-    sCommand.NbData          	= 1;
-
-    do {
-        if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-            return HAL_ERROR;
-
-        if (HAL_QSPI_Receive(hqspi, &status, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-            return HAL_ERROR;
-
-        if ((HAL_GetTick() - tickstart) > timeout)
-            return HAL_TIMEOUT;
-
-    } while (status & W25Q256JV_STATUS_REG1_BUSY_MASK);  // Bit 0 = BUSY
-
-    return HAL_OK;
-}
-
 HAL_StatusTypeDef QSPI_Read_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t *value)
 {
     QSPI_CommandTypeDef sCommand;
@@ -532,68 +502,6 @@ HAL_StatusTypeDef QSPI_Write_Data_SPI(QSPI_HandleTypeDef *hqspi, const uint8_t *
     return QSPI_AutoPollingMemReady();
 }
 
-HAL_StatusTypeDef QSPI_Write_Data_Dual(QSPI_HandleTypeDef *hqspi, const uint8_t *buffer, uint32_t address, uint32_t size)
-{
-    QSPI_CommandTypeDef sCommand;
-
-    if (QSPI_WriteEnable(hqspi) != HAL_OK)
-        return HAL_ERROR;
-
-    memset(&sCommand, 0, sizeof(sCommand));
-    sCommand.InstructionMode = QSPI_INSTRUCTION_1_LINE;
-    sCommand.Instruction     = W25Q256JV_PAGE_PROGRAM_DUAL_INPUT_CMD; // DUAL INPUT PAGE PROGRAM
-    sCommand.AddressMode     = QSPI_ADDRESS_1_LINE;
-    sCommand.AddressSize     = QSPI_ADDRESS_32_BITS;
-    sCommand.Address         = address;
-    sCommand.DataMode        = QSPI_DATA_2_LINES;
-    sCommand.DummyCycles     = 0;
-    sCommand.NbData          = size;
-    sCommand.SIOOMode        = QSPI_SIOO_INST_EVERY_CMD;
-
-    if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-        return HAL_ERROR;
-
-    if (HAL_QSPI_Transmit(hqspi, (uint8_t*)buffer, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-        return HAL_ERROR;
-
-    return QSPI_AutoPollingMemReady();
-}
-
-HAL_StatusTypeDef QSPI_Write_String_Dual(QSPI_HandleTypeDef *hqspi, const char *pString, uint32_t Address)
-{
-    QSPI_CommandTypeDef sCommand;
-    uint32_t size = strlen(pString) + 1; // Incluir el NULL terminator
-    HAL_StatusTypeDef status;
-
-    if (size > 256) return HAL_ERROR;
-
-    memset(&sCommand, 0, sizeof(sCommand));
-    sCommand.InstructionMode = QSPI_INSTRUCTION_1_LINE;
-    sCommand.Instruction     = W25Q256JV_WRITE_ENABLE_CMD;
-    sCommand.AddressMode     = QSPI_ADDRESS_NONE;
-    sCommand.DataMode        = QSPI_DATA_NONE;
-    sCommand.DummyCycles     = 0;
-
-    if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK) return HAL_ERROR;
-
-    // 2. Page Program DUAL Input (0xA2)
-    sCommand.Instruction     = W25Q256JV_PAGE_PROGRAM_DUAL_INPUT_CMD;
-    sCommand.AddressMode     = QSPI_ADDRESS_1_LINE;
-    sCommand.AddressSize     = QSPI_ADDRESS_32_BITS;
-    sCommand.Address         = Address;
-    sCommand.DataMode        = QSPI_DATA_2_LINES;
-    sCommand.NbData          = size;
-    sCommand.DummyCycles     = 0;
-
-    status = HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
-    if (status != HAL_OK) return status;
-
-    status = HAL_QSPI_Transmit(hqspi, (uint8_t *)pString, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
-    if (status != HAL_OK) return status;
-
-    return QSPI_AutoPollingMemReady();
-}
-
 HAL_StatusTypeDef QSPI_Write_String_Quad(QSPI_HandleTypeDef *hqspi, const char *pString, uint32_t Address)
 {
     QSPI_CommandTypeDef sCommand;
@@ -694,27 +602,6 @@ HAL_StatusTypeDef QSPI_Read_Data_SPI(QSPI_HandleTypeDef *hqspi, uint8_t *buffer,
     sCommand.Address         = address;
     sCommand.DataMode        = QSPI_DATA_1_LINE;
     sCommand.DummyCycles     = 0;
-    sCommand.NbData          = size;
-    sCommand.SIOOMode        = QSPI_SIOO_INST_EVERY_CMD;
-
-    if (HAL_QSPI_Command(hqspi, &sCommand, HAL_QPSI_TIMEOUT_DEFAULT_VALUE) != HAL_OK)
-        return HAL_ERROR;
-
-    return HAL_QSPI_Receive(hqspi, buffer, HAL_QPSI_TIMEOUT_DEFAULT_VALUE);
-}
-
-HAL_StatusTypeDef QSPI_Read_Data_Dual(QSPI_HandleTypeDef *hqspi, uint8_t *buffer, uint32_t address, uint32_t size)
-{
-    QSPI_CommandTypeDef sCommand;
-    memset(&sCommand, 0, sizeof(sCommand));
-
-    sCommand.InstructionMode = QSPI_INSTRUCTION_1_LINE;
-    sCommand.Instruction     = W25Q256JV_FAST_READ_DUAL_OUT_CMD; // FAST READ DUAL OUTPUT
-    sCommand.AddressMode     = QSPI_ADDRESS_1_LINE;
-    sCommand.AddressSize     = QSPI_ADDRESS_32_BITS;
-    sCommand.Address         = address;
-    sCommand.DataMode        = QSPI_DATA_2_LINES;
-    sCommand.DummyCycles     = 8;
     sCommand.NbData          = size;
     sCommand.SIOOMode        = QSPI_SIOO_INST_EVERY_CMD;
 
@@ -1099,21 +986,52 @@ HAL_StatusTypeDef QSPI_ReadStatusAll(QSPI_HandleTypeDef *hqspi, QSPI_StatusRegs_
 
 HAL_StatusTypeDef QSPI_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t address, const char *pattern, uint32_t size)
 {
-    uint8_t verify_buf[512]; // buffer temporal de lectura
-    uint32_t test_size = size;
+      uint8_t buffer_test[W25Q256JV_SECTOR_SIZE];
+      uint32_t var = 0;
 
-    if (test_size > W25Q256JV_PAGE_SIZE)
-        test_size = W25Q256JV_PAGE_SIZE;
+      if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
 
-    if (QSPI_AutoPollingMemReady() != HAL_OK) return HAL_ERROR;
-    if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
-    if (QSPI_Sector_Erase(hqspi, TEST_ADDR, TEST_ADDR + W25Q256JV_SECTOR_SIZE) != HAL_OK) return HAL_ERROR;
-    if (QSPI_Write_String_Quad(hqspi, pattern, TEST_ADDR) != HAL_OK) return HAL_ERROR;
-    if (QSPI_Fast_Read_Quad_Output(hqspi, verify_buf, address, test_size) != HAL_OK) return HAL_ERROR;
+      for (var = 0; var < W25Q256JV_SECTOR_SIZE; var++) {
+          buffer_test[var] = pattern[var % size];
+      }
 
-    if (memcmp(pattern, verify_buf, test_size) != 0) return HAL_ERROR;
+      for (var = 0; var < TEST_SECTORS_COUNT; var++) {
 
-    return HAL_OK;
+          if (QSPI_Sector_Erase(hqspi,
+                                var * W25Q256JV_SECTOR_SIZE,
+                                (var + 1) * W25Q256JV_SECTOR_SIZE - 1) != HAL_OK)
+              Error_Handler();
+
+          if (QSPI_Write_Data_Quad(hqspi, buffer_test, sizeof(buffer_test),
+                                   var * W25Q256JV_SECTOR_SIZE) != HAL_OK)
+        	  return HAL_ERROR;
+      }
+
+      if (QSPI_EnableMemoryMapped_1_4_4(hqspi) != HAL_OK) return HAL_ERROR;
+
+      // Verificación: comparar lo escrito con lo leído por memory-mapped
+      for (var = 0; var < TEST_SECTORS_COUNT; var++) {
+          uint8_t *flash_ptr = (uint8_t *)(0x90000000 + var * W25Q256JV_SECTOR_SIZE);
+          int diff = memcmp(buffer_test, flash_ptr, W25Q256JV_SECTOR_SIZE);
+
+          if (diff != 0) {
+              size_t i;
+              for (i = 0; i < W25Q256JV_SECTOR_SIZE; i++) {
+                  if (buffer_test[i] != flash_ptr[i]) {
+                      break;
+                  }
+              }
+
+//              volatile size_t mismatch_index = i;
+//              volatile uint8_t expected = buffer_test[i];
+//              volatile uint8_t actual = flash_ptr[i];
+//              volatile uint32_t flash_address = (uint32_t)&flash_ptr[i];
+
+              return HAL_ERROR;
+          }
+      }
+
+      return HAL_OK;
 }
 
 HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_1_4(QSPI_HandleTypeDef *hqspi)
@@ -1164,29 +1082,6 @@ HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi)
 
     /* --- Habilitar modo Memory-Mapped --- */
     return HAL_QSPI_MemoryMapped(hqspi, &sCommand, &sMemMappedCfg);
-}
-
-HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t test_addr, const char *test_string)
-{
-    uint32_t len = strlen(test_string);
-    uint8_t read_buffer[W25Q256JV_PAGE_SIZE] = {0};
-
-    if (QSPI_Set_Status_Config(hqspi) != HAL_OK) return HAL_ERROR;
-
-    if (QSPI_Sector_Erase(hqspi, test_addr, test_addr + W25Q256JV_SECTOR_SIZE) != HAL_OK) return HAL_ERROR;
-
-    if (QSPI_Write_Data_Quad(hqspi, (uint8_t *)test_string, len, test_addr) != HAL_OK) return HAL_ERROR;
-
-    if (QSPI_EnableMemoryMapped_1_4_4(hqspi) != HAL_OK) return HAL_ERROR;
-
-    volatile uint8_t *mapped_ptr = (volatile uint8_t *)(QSPI_BASE_ADDR + test_addr);
-    for (uint32_t i = 0; i < len; i++) {
-        read_buffer[i] = mapped_ptr[i];
-    }
-
-    if (memcmp(test_string, read_buffer, len) != 0) return HAL_ERROR;
-
-    return HAL_OK;
 }
 
 /* USER CODE END 1 */

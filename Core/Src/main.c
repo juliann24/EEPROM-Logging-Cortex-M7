@@ -2,6 +2,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "quadspi.h"
 #include "gpio.h"
 
@@ -35,14 +36,26 @@ static void MPU_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//#define SECTORS_COUNT 100
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////// Memory Mapped testing /////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 //const __attribute__((section(".extFlash"))) uint8_t buf[] = "Hello world from H743 QSPI";
-uint8_t readbuf[40];
+//uint8_t readbuf[40];
 
-typedef void (*pFunction)(void);
-pFunction JumpToApplication;
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////// XiP testing //////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define APPLICATION_ADDRESS 0x90000000U
+//#define APPLICATION_ADDRESS 0x90000000U
+//typedef void (*pFunction)(void);
+//pFunction JumpToApplication;
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /* USER CODE END 0 */
 
 /**
@@ -53,12 +66,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  //const char *test_string = "QUAD_MODE_FUNCIONAL";
-  //uint32_t string_len = strlen(test_string);
-  //uint8_t read_buffer[W25Q256JV_PAGE_SIZE] = {0};
-  //uint8_t read_buffer2[W25Q256JV_PAGE_SIZE] = {0};
-  //uint8_t before[16] = {0};
-  //uint8_t after[16] = {0};
 
   /* USER CODE END 1 */
 
@@ -90,67 +97,25 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_QUADSPI_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-  if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) Error_Handler();
-  if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) Error_Handler();
 
-  SCB_DisableDCache();
-  SCB_DisableICache();
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////// XiP testing //////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  SysTick->CTRL = 0;
-
-  JumpToApplication = (pFunction) (*(__IO uint32_t*) (APPLICATION_ADDRESS + 4));
-  __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
-  JumpToApplication();
-//  uint8_t buffer_test[W25Q256JV_SECTOR_SIZE];
-//  uint32_t var = 0;
-//
-//  // Cadena base a repetir
-//  const char pattern[] = "JULIAN";
-//  const size_t pattern_len = sizeof(pattern) - 1; // sin el '\0'
-//
 //  if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) Error_Handler();
-//
-//  for (var = 0; var < W25Q256JV_SECTOR_SIZE; var++) {
-//      buffer_test[var] = pattern[var % pattern_len];
-//  }
-//
-//  for (var = 0; var < SECTORS_COUNT; var++) {
-//
-//      if (QSPI_Sector_Erase(&hqspi,
-//                            var * W25Q256JV_SECTOR_SIZE,
-//                            (var + 1) * W25Q256JV_SECTOR_SIZE - 1) != HAL_OK)
-//          Error_Handler();
-//
-//      if (QSPI_Write_Data_Quad(&hqspi, buffer_test, sizeof(buffer_test),
-//                               var * W25Q256JV_SECTOR_SIZE) != HAL_OK)
-//          Error_Handler();
-//  }
-//
 //  if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) Error_Handler();
 //
-//  // Verificación: comparar lo escrito con lo leído por memory-mapped
-//  for (var = 0; var < SECTORS_COUNT; var++) {
-//      uint8_t *flash_ptr = (uint8_t *)(0x90000000 + var * W25Q256JV_SECTOR_SIZE);
-//      int diff = memcmp(buffer_test, flash_ptr, W25Q256JV_SECTOR_SIZE);
+//  SCB_DisableDCache();
+//  SCB_DisableICache();
 //
-//      if (diff != 0) {
-//          size_t i;
-//          for (i = 0; i < W25Q256JV_SECTOR_SIZE; i++) {
-//              if (buffer_test[i] != flash_ptr[i]) {
-//                  break;
-//              }
-//          }
+//  SysTick->CTRL = 0;
 //
-//          volatile size_t mismatch_index = i;
-//          volatile uint8_t expected = buffer_test[i];
-//          volatile uint8_t actual = flash_ptr[i];
-//          volatile uint32_t flash_address = (uint32_t)&flash_ptr[i];
-//          Error_Handler();
-//      }
-//  }
-
-//  memcpy(readbuf, buf, sizeof(buf));
+//  JumpToApplication = (pFunction) (*(__IO uint32_t*) (APPLICATION_ADDRESS + 4));
+//  __set_MSP(*(__IO uint32_t*) APPLICATION_ADDRESS);
+//  JumpToApplication();
+//
   /* USER CODE END 2 */
 
   /* Initialize leds */
@@ -161,41 +126,35 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-
-  ///////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////QSPI SELF TEST///////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////
 
-  /*
-  if(QSPI_SelfTest(&hqspi, TEST_ADDRESS, test_string, string_len) == HAL_OK){
-      BSP_LED_Off(LED_RED);
-      BSP_LED_On(LED_GREEN);
-  }
-  else {
-      BSP_LED_On(LED_RED);
-      BSP_LED_Off(LED_GREEN);
-  }
-*/
+//  char test_string[] = "JULIAN";
+//  const size_t string_len = sizeof(test_string) - 1;
+//
+//  if(QSPI_SelfTest(&hqspi, LOG_START_ADDR, test_string, string_len) == HAL_OK){
+//      BSP_LED_Off(LED_RED);
+//      BSP_LED_On(LED_GREEN);
+//  }
+//  else {
+//      BSP_LED_On(LED_RED);
+//      BSP_LED_Off(LED_GREEN);
+//  }
 
-  ///////////////////////////////////////////////////////////////////////////////////////
-  ////////////////////////////////////MEMORY MAP TEST////////////////////////////////////
-  ///////////////////////////////////////////////////////////////////////////////////////
-/*
-  if (QSPI_MemoryMapped_SelfTest(&hqspi, TEST_ADDR, TEST_STRING) == HAL_OK) {
-      BSP_LED_Off(LED_RED);
-      BSP_LED_On(LED_GREEN);
-  } else {
-      BSP_LED_On(LED_RED);
-      BSP_LED_Off(LED_GREEN);
-  }
-*/
+  ///////////////////////////////////////////////////// Memory Mapped testing /////////////////////////////////////////////////////
+
+//  if (QSPI_Set_Status_Config(&hqspi) != HAL_OK) Error_Handler();
+//  if (QSPI_EnableMemoryMapped_1_4_4(&hqspi) != HAL_OK) Error_Handler();
+//  memcpy(readbuf, buf, sizeof(buf));
+
+  uint16_t val = 0;
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
 	  HAL_Delay(50);
+	  val = ReadPot();
   }
   /* USER CODE END 3 */
 }

@@ -53,10 +53,11 @@ typedef struct {
     uint8_t LB;
 } QSPI_StatusRegs_t;
 
-#define TEST_ADDR       0x000000      // dirección dentro de la flash
-#define TEST_ADDR_2       0x001000      // dirección dentro de la flash
+#define LOG_START_ADDR   0x00100000U  // Sector reservado para logging
+#define LOG_SECTOR_SIZE  W25Q256JV_SECTOR_SIZE
 #define QSPI_BASE_ADDR  0x90000000U   // base del mapeo en memoria
 #define TEST_STRING     "Hola QSPI!"
+#define TEST_SECTORS_COUNT 100
 
 /* USER CODE END Private defines */
 
@@ -64,48 +65,42 @@ void MX_QUADSPI_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 HAL_StatusTypeDef QSPI_Read_JEDEC_ID(QSPI_HandleTypeDef *hqspi, uint8_t *pData);
-HAL_StatusTypeDef QSPI_Wait_For_Ready(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_Wait_For_Ready_Manual(QSPI_HandleTypeDef *hqspi, uint32_t timeout);
 HAL_StatusTypeDef QSPI_AutoPollingMemReady(void);
 HAL_StatusTypeDef QSPI_Software_Reset(QSPI_HandleTypeDef *hqspi);
 
-HAL_StatusTypeDef QSPI_Enable_Quad_Mode(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_WriteEnable(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_Enter_4Byte_Mode(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_Exit_4Byte_Mode(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_Write_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t value);
-HAL_StatusTypeDef QSPI_Write_Status_Reg2(QSPI_HandleTypeDef *hqspi, uint8_t value);
 HAL_StatusTypeDef QSPI_Clear_CMP(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_Set_Status_Config(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_1_4(QSPI_HandleTypeDef *hqspi);
-HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi);
 
 HAL_StatusTypeDef QSPI_Sector_Erase(QSPI_HandleTypeDef *hqspi, uint32_t StartSectorAddress, uint32_t EndSectorAddress);
 HAL_StatusTypeDef QSPI_Chip_Erase(QSPI_HandleTypeDef *hqspi);
 
 HAL_StatusTypeDef QSPI_Write_Data_SPI(QSPI_HandleTypeDef *hqspi, const uint8_t *buffer, uint32_t address, uint32_t size);
-HAL_StatusTypeDef QSPI_Write_String_Dual(QSPI_HandleTypeDef *hqspi, const char *pString, uint32_t Address);
-HAL_StatusTypeDef QSPI_Write_String_Quad(QSPI_HandleTypeDef *hqspi, const char *pString, uint32_t Address);
 HAL_StatusTypeDef QSPI_Write_Data_Quad(QSPI_HandleTypeDef *hqspi, const uint8_t *pData, uint32_t size, uint32_t Address);
 
 HAL_StatusTypeDef QSPI_Read_Data_SPI(QSPI_HandleTypeDef *hqspi, uint8_t *buffer, uint32_t address, uint32_t size);
-HAL_StatusTypeDef QSPI_Read_Data_Dual(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size);
 HAL_StatusTypeDef QSPI_Fast_Read_Quad_Output(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size);
 HAL_StatusTypeDef QSPI_Read_Data_Quad_144(QSPI_HandleTypeDef *hqspi, uint8_t *pData, uint32_t Address, uint32_t Size);
+HAL_StatusTypeDef QSPI_DisableMemoryMapped(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_1_4(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_EnableMemoryMapped_1_4_4(QSPI_HandleTypeDef *hqspi);
 
+HAL_StatusTypeDef QSPI_Write_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t value);
+HAL_StatusTypeDef QSPI_Write_Status_Reg2(QSPI_HandleTypeDef *hqspi, uint8_t value);
 HAL_StatusTypeDef QSPI_Read_Status_Reg1(QSPI_HandleTypeDef *hqspi, uint8_t *pStatus);
 HAL_StatusTypeDef QSPI_Read_Status_Reg2(QSPI_HandleTypeDef *hqspi, uint8_t *pStatus);
 HAL_StatusTypeDef QSPI_Read_Status_Reg3(QSPI_HandleTypeDef *hqspi, uint8_t *pStatus);
 HAL_StatusTypeDef QSPI_ReadStatusAll(QSPI_HandleTypeDef *hqspi, QSPI_StatusRegs_t *status);
+
 HAL_StatusTypeDef QSPI_Check_4Byte_Mode(QSPI_HandleTypeDef *hqspi, uint8_t *is4Byte);
+HAL_StatusTypeDef QSPI_Enter_4Byte_Mode(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_Exit_4Byte_Mode(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_Enable_Quad_Mode(QSPI_HandleTypeDef *hqspi);
 HAL_StatusTypeDef QSPI_Check_QE(QSPI_HandleTypeDef *hqspi, uint8_t *qe_state);
-HAL_StatusTypeDef QSPI_Check_BP(QSPI_HandleTypeDef *hqspi, uint8_t *bp_value);
 HAL_StatusTypeDef QSPI_Clear_All_BP(QSPI_HandleTypeDef *hqspi);
+HAL_StatusTypeDef QSPI_Check_BP(QSPI_HandleTypeDef *hqspi, uint8_t *bp_value);
 
 HAL_StatusTypeDef QSPI_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t address, const char *pattern, uint32_t size);
-HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest(QSPI_HandleTypeDef *hqspi, uint32_t test_addr, const char *test_string);
-HAL_StatusTypeDef QSPI_MemoryMapped_SelfTest_AllSectors(QSPI_HandleTypeDef *hqspi, const char *test_string, uint32_t sector_step);
 
 /* USER CODE END Prototypes */
 
